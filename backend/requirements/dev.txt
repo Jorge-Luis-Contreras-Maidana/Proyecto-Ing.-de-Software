@@ -1,0 +1,8 @@
+-r base.txt
+pytest
+pytest-cov
+factory-boy
+ruff
+mypy
+import-linter
+locust

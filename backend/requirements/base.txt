@@ -1,0 +1,14 @@
+Flask
+Flask-SQLAlchemy
+Flask-Migrate
+Flask-JWT-Extended
+Flask-Cors
+psycopg[binary]
+pydantic
+argon2-cffi
+pyotp
+APScheduler
+python-dotenv
+gunicorn
+tzdata
+cryptography

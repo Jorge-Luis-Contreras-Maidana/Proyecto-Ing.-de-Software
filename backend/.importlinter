@@ -1,0 +1,8 @@
+[importlinter]
+root_package = app
+
+[importlinter:contract:core-independiente]
+name = core no depende de modules
+type = forbidden
+source_modules = app.core
+forbidden_modules = app.modules
