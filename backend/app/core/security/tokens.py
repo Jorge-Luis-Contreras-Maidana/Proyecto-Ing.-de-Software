@@ -11,5 +11,5 @@ def session_id_from_token() -> int:
     """Lee el id de sesión del token ya verificado."""
     try:
         return int(get_jwt()["sid"])
-    except (KeyError, TypeError, ValueError):
-        raise InvalidToken()
+    except (KeyError, TypeError, ValueError) as err:
+        raise InvalidToken() from err

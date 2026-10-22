@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sesco-postgres
+    environment:
+      POSTGRES_DB: asistencia_db
+      POSTGRES_USER: asistencia_user
+      POSTGRES_PASSWORD: asistencia_user
+      TZ: America/La_Paz
+      PGTZ: America/La_Paz
+    ports:
+      - "5432:5432"
+    volumes:
+      # Crea el esquema "sesco" y carga los datos de demostración.
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - sesco_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U asistencia_user -d asistencia_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  sesco_pgdata:

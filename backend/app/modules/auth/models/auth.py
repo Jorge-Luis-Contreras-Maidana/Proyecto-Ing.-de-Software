@@ -29,6 +29,7 @@ class Usuario(db.Model):
     apellidos: Mapped[str] = mapped_column(String(100))
     nombre_usuario: Mapped[str] = mapped_column(String(60), unique=True)
     correo: Mapped[str | None] = mapped_column(String(150))
+    telefono: Mapped[str | None] = mapped_column(String(30))
     hash_contrasena: Mapped[str] = mapped_column(Text)
     estado: Mapped[str] = mapped_column(String(15))
     debe_cambiar_contrasena: Mapped[bool] = mapped_column(Boolean)

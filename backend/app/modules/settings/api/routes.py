@@ -1,31 +1,24 @@
-from flask import Blueprint, jsonify, request
-from app.modules.auth import auth_required
+from flask import Blueprint
+
+from app.modules.auth import auth_required, current_principal
+from app.modules.settings.api.schemas import SettingsUpdate, parse_json, settings_payload
+from app.modules.settings.services.settings_service import SettingsService
 
 bp = Blueprint("settings", __name__)
 
-settings_db = {
-    "tolerance_minutes": 10,
-    "absence_limit_minutes": 30
-}
+
+def _service() -> SettingsService:
+    return SettingsService()
 
 
 @bp.get("/attendance")
 @auth_required()
 def get_attendance_settings():
-    return jsonify(settings_db), 200
+    return settings_payload(_service().get())
 
 
 @bp.put("/attendance")
 @auth_required("director")
 def update_attendance_settings():
-    data = request.get_json() or {}
-    tolerance = data.get("tolerance_minutes")
-    absence_limit = data.get("absence_limit_minutes")
-
-    if tolerance is None or absence_limit is None or tolerance < 0 or absence_limit < 0:
-        return jsonify({"error": "Parámetros inválidos"}), 400
-
-    settings_db["tolerance_minutes"] = tolerance
-    settings_db["absence_limit_minutes"] = absence_limit
-
-    return jsonify(settings_db), 200
+    data = parse_json(SettingsUpdate)
+    return settings_payload(_service().update(current_principal(), data.model_dump(exclude_unset=True)))

@@ -1,9 +1,9 @@
 import logging
 
-from flask import jsonify
 from werkzeug.exceptions import HTTPException
 
 from app.extensions import db
+
 from .exceptions import AppError, InvalidToken, NotAuthenticated, SessionExpired
 from .messages import MESSAGES
 

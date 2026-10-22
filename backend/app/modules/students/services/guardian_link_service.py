@@ -2,7 +2,7 @@
 from app.core import clock
 from app.core.database.unit_of_work import unit_of_work
 from app.core.errors.exceptions import DuplicateRecord, InvalidData, NotFound
-from app.modules.auth import display_names
+from app.modules.auth.services.directory import display_names
 from app.modules.students.models.guardian_link import EstudianteTutor
 from app.modules.students.repositories.students_repository import GuardianLinkRepository
 

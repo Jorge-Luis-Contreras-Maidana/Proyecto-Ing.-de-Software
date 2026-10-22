@@ -1,5 +1,5 @@
 import pytest
-from sqlalchemy import text
+from sqlalchemy import select, text
 
 from app import create_app
 from app.core.security.hashing import hash_password
@@ -14,6 +14,8 @@ USUARIOS_DE_PRUEBA = (
     "tutor1",
     "tutor2",
     "estudiante1",
+    "estudiante2",
+    "estudiante3",
 )
 
 _TEST = "SELECT id_estudiante FROM sesco.estudiantes WHERE codigo_estudiante LIKE 'TEST-%'"
@@ -130,3 +132,66 @@ def student_user():
 @pytest.fixture()
 def student_secret():
     return "JBSWY3DPEHPK3PXP"
+
+
+# ---------- credenciales QR ----------
+MARCADOR_CREDENCIAL = "DEMO_SECRETO_CIFRADO_"
+
+
+def codigo_qr_de(id_estudiante: int) -> str:
+    """Código TOTP vigente del estudiante, tal como lo vería su pantalla.
+
+    Si la credencial guardada es un marcador de demostración (no se puede
+    descifrar), emite una nueva para que el test no dependa de un paso previo.
+    """
+    from app.core import clock
+    from app.core.security.totp_crypto import descifrar
+    from app.modules.qr.models.qr import CredencialQR
+    from app.modules.qr.services.qr_service import QRService
+    from app.modules.qr.services.totp_service import TOTPService
+
+    credencial = db.session.execute(
+        select(CredencialQR).where(
+            CredencialQR.id_estudiante == id_estudiante,
+            CredencialQR.estado == "activa",
+        )
+    ).scalars().first()
+    if credencial is None or credencial.secreto_totp_cifrado.startswith(MARCADOR_CREDENCIAL):
+        if credencial is not None:
+            credencial.estado = "revocada"
+            credencial.revocada_en = clock.now()
+            db.session.commit()
+        credencial = QRService().emitir_si_falta(id_estudiante)
+    return TOTPService.get_current_code_and_ttl(descifrar(credencial.secreto_totp_cifrado))[0]
+
+
+@pytest.fixture()
+def qr_code():
+    """Devuelve el código QR vigente de un estudiante: qr_code(1)."""
+    return codigo_qr_de
+
+
+def limpiar_lecturas_qr(id_estudiante: int) -> None:
+    """Borra las lecturas de QR de un estudiante.
+
+    El mismo código no puede aceptarse dos veces dentro de una ventana, así
+    que los tests que verifican un código necesitan partir de cero.
+    """
+    db.session.execute(
+        text(
+            "delete from sesco.lecturas_qr l using sesco.credenciales_qr c "
+            "where l.id_credencial = c.id_credencial and c.id_estudiante = :e"
+        ),
+        {"e": id_estudiante},
+    )
+    db.session.commit()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def horario_de_hoy(app):
+    """Garantiza que exista el horario de clases de hoy en la base de pruebas."""
+    from app.modules.attendance.services.schedule_service import ScheduleService
+
+    with app.app_context():
+        ScheduleService().asegurar_hoy()
+        yield

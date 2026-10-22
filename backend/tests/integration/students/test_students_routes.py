@@ -80,6 +80,19 @@ def test_lista_con_busqueda_y_paginacion(client, director):
     assert client.get("/api/students?per_page=500", headers=director).status_code == 422
 
 
+def test_la_busqueda_ignora_tildes_y_mayusculas(client, director):
+    creado = nuevo(client, director, nombres="Sofía", apellidos="Ñurtez").get_json()
+    for consulta in ("sofia", "Sofía", "SOFÍA", "ñurtez", "NURTEZ"):
+        r = client.get(f"/api/students?q={consulta}", headers=director).get_json()
+        assert creado["id_estudiante"] in {e["id_estudiante"] for e in r["items"]}, consulta
+
+
+def test_la_busqueda_no_usa_comodines_del_usuario(client, director):
+    nuevo(client, director, nombres="Zoraida", apellidos="Quillahuaman")
+    total = client.get("/api/students?q=%25", headers=director).get_json()["total"]
+    assert total == 0
+
+
 # ---------- quién puede qué (RF-01.3, RD-02.1) ----------
 def test_profesor_y_tutor_no_pueden_registrar(client, login):
     for usuario in ("prof.cmamani", "tutor1"):
@@ -118,7 +131,8 @@ def test_observaciones_con_acceso_restringido(client, login, director):
                             json={"tipo": "convivencia", "descripcion": "Situación reservada.", "confidencial": True})
     assert reservada.status_code == 201
 
-    ver = lambda h: client.get(f"/api/students/{sid}/observaciones", headers=h)
+    def ver(h):
+        return client.get(f"/api/students/{sid}/observaciones", headers=h)
     assert len(ver(director).get_json()["items"]) == 2   # el director ve todo
     assert len(ver(prof).get_json()["items"]) == 2       # el autor ve las suyas
     assert len(ver(otro_prof).get_json()["items"]) == 1  # otro profesor no ve la confidencial

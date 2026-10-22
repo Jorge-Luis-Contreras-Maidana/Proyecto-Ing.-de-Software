@@ -12,6 +12,9 @@ class Tutor(db.Model):
     id_tutor: Mapped[int] = mapped_column(Integer, primary_key=True)
     id_usuario: Mapped[int] = mapped_column(Integer, unique=True)
     documento_identidad: Mapped[str | None] = mapped_column(String(30))
+    ocupacion: Mapped[str | None] = mapped_column(String(80))
+    confirmado_por: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id_usuario"))
+    confirmado_en: Mapped[datetime | None] = mapped_column(DateTime)
     estado: Mapped[str] = mapped_column(String(15))
 
 

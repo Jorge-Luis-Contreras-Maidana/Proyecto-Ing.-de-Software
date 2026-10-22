@@ -15,5 +15,7 @@ def get_config(name: str | None = None):
     name = name or os.getenv("FLASK_ENV", "development")
     try:
         return _CONFIGS[name]
-    except KeyError:
-        raise RuntimeError(f"Configuración desconocida: '{name}'. Use development, production o testing.")
+    except KeyError as err:
+        raise RuntimeError(
+            f"Configuración desconocida: '{name}'. Use development, production o testing."
+        ) from err

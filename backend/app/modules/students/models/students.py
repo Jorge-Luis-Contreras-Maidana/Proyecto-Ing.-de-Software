@@ -17,6 +17,27 @@ class GestionEscolar(db.Model):
     estado: Mapped[str] = mapped_column(String(15))
 
 
+class UnidadEducativa(db.Model):
+    __tablename__ = "unidades_educativas"
+
+    id_unidad: Mapped[int] = mapped_column(Integer, primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(120))
+    codigo: Mapped[str] = mapped_column(String(20))
+    direccion: Mapped[str] = mapped_column(String(180))
+    ciudad: Mapped[str] = mapped_column(String(60))
+    departamento: Mapped[str] = mapped_column(String(60))
+    telefono: Mapped[str | None] = mapped_column(String(30))
+    estado: Mapped[str] = mapped_column(String(15))
+
+
+class Materia(db.Model):
+    __tablename__ = "materias"
+
+    id_materia: Mapped[int] = mapped_column(Integer, primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(80))
+    descripcion: Mapped[str | None] = mapped_column(String(200))
+
+
 class Curso(db.Model):
     __tablename__ = "cursos"
 
@@ -57,6 +78,9 @@ class Profesor(db.Model):
 
     id_profesor: Mapped[int] = mapped_column(Integer, primary_key=True)
     id_usuario: Mapped[int] = mapped_column(Integer)
+    codigo_docente: Mapped[str | None] = mapped_column(String(25))
+    especialidad: Mapped[str | None] = mapped_column(String(100))
+    fecha_contratacion: Mapped[date | None] = mapped_column(Date)
     estado: Mapped[str] = mapped_column(String(15))
 
 
@@ -66,6 +90,7 @@ class AsignacionDocente(db.Model):
     id_asignacion: Mapped[int] = mapped_column(Integer, primary_key=True)
     id_profesor: Mapped[int] = mapped_column(ForeignKey("profesores.id_profesor"))
     id_curso: Mapped[int] = mapped_column(ForeignKey("cursos.id_curso"))
+    id_materia: Mapped[int | None] = mapped_column(ForeignKey("materias.id_materia"))
     id_gestion: Mapped[int] = mapped_column(ForeignKey("gestiones_escolares.id_gestion"))
 
 

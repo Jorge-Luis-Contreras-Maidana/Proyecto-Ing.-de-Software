@@ -1,0 +1,19 @@
+line-length = 120
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP", "C4"]
+ignore = [
+    # Los mensajes de error son líneas largas en español y no se parten.
+    "E501",
+    # La app usa app.core.security.totp_crypto y otros, con nombres explícitos.
+    "B008",
+]
+
+[lint.per-file-ignores]
+# Los tests declaran fixtures que no usan en todos los archivos.
+"tests/**" = ["F401", "F811"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

@@ -42,7 +42,7 @@ class GuardianLinkCreate(BaseModel):
 
 
 def student_payload(view, tutores=None) -> dict:
-    est, insc, curso = view.estudiante, view.inscripcion, view.curso
+    est, curso = view.estudiante, view.curso
     data = {
         "id_estudiante": est.id_estudiante,
         "codigo_estudiante": est.codigo_estudiante,

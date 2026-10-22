@@ -18,7 +18,7 @@ def parse_json(model: type[BaseModel]):
     try:
         return model.model_validate(payload)
     except ValidationError as err:
-        raise _invalid(err)
+        raise _invalid(err) from err
 
 
 def parse_query(model: type[BaseModel]):
@@ -26,4 +26,4 @@ def parse_query(model: type[BaseModel]):
     try:
         return model.model_validate(request.args.to_dict())
     except ValidationError as err:
-        raise _invalid(err)
+        raise _invalid(err) from err

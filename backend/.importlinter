@@ -1,8 +1,63 @@
 [importlinter]
 root_package = app
+include_external_packages = True
 
 [importlinter:contract:core-independiente]
 name = core no depende de modules
 type = forbidden
 source_modules = app.core
 forbidden_modules = app.modules
+
+[importlinter:contract:servicios-sin-flask]
+name = los servicios no dependen de Flask ni de la capa api
+type = forbidden
+source_modules =
+    app.modules.auth.services
+    app.modules.students.services
+    app.modules.qr.services
+    app.modules.attendance.services
+    app.modules.notifications.services
+    app.modules.announcements.services
+    app.modules.followup.services
+    app.modules.meetings.services
+    app.modules.reports.services
+    app.modules.audit.services
+    app.modules.settings.services
+    app.modules.justifications.services
+forbidden_modules = flask
+
+[importlinter:contract:modelos-sin-flask]
+name = los modelos no dependen de Flask
+type = forbidden
+source_modules =
+    app.modules.auth.models
+    app.modules.students.models
+    app.modules.qr.models
+    app.modules.attendance.models
+    app.modules.notifications.models
+    app.modules.announcements.models
+    app.modules.followup.models
+    app.modules.meetings.models
+    app.modules.reports.models
+    app.modules.audit.models
+    app.modules.settings.models
+    app.modules.justifications.models
+forbidden_modules = flask
+
+[importlinter:contract:repositorios-sin-flask]
+name = los repositorios no dependen de Flask
+type = forbidden
+source_modules =
+    app.modules.auth.repositories
+    app.modules.students.repositories
+    app.modules.qr.repositories
+    app.modules.attendance.repositories
+    app.modules.notifications.repositories
+    app.modules.announcements.repositories
+    app.modules.followup.repositories
+    app.modules.meetings.repositories
+    app.modules.reports.repositories
+    app.modules.audit.repositories
+    app.modules.settings.repositories
+    app.modules.justifications.repositories
+forbidden_modules = flask

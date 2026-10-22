@@ -2,6 +2,7 @@ from sqlalchemy import and_, false, func, or_, select
 from sqlalchemy.exc import IntegrityError
 
 from app.core.errors.exceptions import DuplicateRecord
+from app.core.text.search import coincide
 from app.extensions import db
 from app.modules.students.models.guardian_link import EstudianteTutor, Tutor
 from app.modules.students.models.students import (
@@ -69,11 +70,10 @@ class StudentsRepository:
         if id_curso:
             conds.append(Inscripcion.id_curso == id_curso)
         if q:
-            patron = f"%{q}%"
             conds.append(
                 or_(
-                    (Estudiante.nombres + " " + Estudiante.apellidos).ilike(patron),
-                    Estudiante.codigo_estudiante.ilike(patron),
+                    coincide(Estudiante.nombres + " " + Estudiante.apellidos, q),
+                    coincide(Estudiante.codigo_estudiante, q),
                 )
             )
         total = db.session.scalar(self._joined(select(func.count(Estudiante.id_estudiante)), id_gestion).where(*conds))
@@ -102,12 +102,12 @@ class StudentsRepository:
         try:
             db.session.add(estudiante)
             db.session.flush()
-        except IntegrityError:
+        except IntegrityError as err:
             db.session.rollback()
             raise DuplicateRecord(
                 f"Ya existe un estudiante con el código '{estudiante.codigo_estudiante}'.",
                 "Use otro código o busque al estudiante en la lista.",
-            )
+            ) from err
         return estudiante
 
     def add_enrollment(self, inscripcion: Inscripcion) -> Inscripcion:

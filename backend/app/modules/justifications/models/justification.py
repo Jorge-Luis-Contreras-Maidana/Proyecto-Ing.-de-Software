@@ -1,5 +1,6 @@
-from datetime import datetime
+from app.core import clock
 from app.extensions import db
+
 
 class JustificacionAusencia(db.Model):
     __tablename__ = "justificaciones_ausencia"
@@ -12,7 +13,7 @@ class JustificacionAusencia(db.Model):
     fecha_fin = db.Column(db.Date, nullable=False)
     motivo_declarado = db.Column(db.Text, nullable=False)
     documento_referencia = db.Column(db.Text, nullable=True)
-    solicitada_en = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    solicitada_en = db.Column(db.DateTime, nullable=False, default=clock.now)
     estado = db.Column(db.String(20), nullable=False, default="pendiente")
     revisada_por = db.Column(db.Integer, db.ForeignKey("sesco.usuarios.id_usuario"), nullable=True)
     revisada_en = db.Column(db.DateTime, nullable=True)

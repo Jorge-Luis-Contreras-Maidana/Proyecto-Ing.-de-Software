@@ -1,58 +1,82 @@
-import qrcode
-from flask import Blueprint, jsonify, request
-from app.modules.auth import auth_required
-from app.modules.qr.services.totp_service import TOTPService
+from flask import Blueprint
 
+from app.extensions import db
+from app.modules.auth import auth_required, current_principal
+from app.modules.qr.api.schemas import QRVerifyRequest, parse_json, qr_payload
+from app.modules.qr.services.qr_service import QRService
+from app.modules.students.models.students import Estudiante
 
 bp = Blueprint("qr", __name__)
 
 
+def _service() -> QRService:
+    return QRService()
+
+
 @bp.get("/me/code")
-@auth_required("estudiante")
+@auth_required()
 def get_my_qr_code():
-    import io
-    import base64
+    """Credencial del estudiante que inició sesión."""
+    id_estudiante = QRService._id_estudiante_del_usuario(current_principal().id_usuario)
+    if id_estudiante is None:
+        return {
+            "error": {
+                "codigo": "no_encontrado",
+                "mensaje": "Su cuenta no está vinculada a un estudiante.",
+                "accion": "Comuníquese con la dirección de la unidad educativa.",
+            }
+        }, 404
+    return qr_payload(_service().codigo_del_estudiante(current_principal(), id_estudiante))
 
-    secret = "JBSWY3DPEHPK3PXP"
-    code, expires_in = TOTPService.get_current_code_and_ttl(secret)
 
-    qr = qrcode.make(code)
-    buffer = io.BytesIO()
-    qr.save(buffer, format="PNG")
-
-    qr_image = base64.b64encode(buffer.getvalue()).decode("utf-8")
-
-    return jsonify({
-        "code": code,
-        "expires_in": expires_in,
-        "qr_image": f"data:image/png;base64,{qr_image}"
-    }), 200
-
+@bp.get("/student/<int:id_estudiante>")
+@auth_required("director", "profesor")
+def get_student_qr_info(id_estudiante: int):
+    """Credencial y datos básicos de un estudiante, para el personal."""
+    estudiante = db.session.get(Estudiante, id_estudiante)
+    if estudiante is None:
+        return {
+            "error": {
+                "codigo": "no_encontrado",
+                "mensaje": "No se encontró el estudiante.",
+                "accion": "Verifique el estudiante o regrese al inicio.",
+            }
+        }, 404
+    resultado = _service().codigo_del_estudiante(current_principal(), id_estudiante)
+    return {
+        "id_estudiante": estudiante.id_estudiante,
+        "nombres": estudiante.nombres,
+        "apellidos": estudiante.apellidos,
+        "codigo_estudiante": estudiante.codigo_estudiante,
+        "estado": estudiante.estado,
+        "credencial_activa": True,
+        "id_credencial": resultado.id_credencial,
+        "codigo": resultado.code,
+        "expira_en_segundos": resultado.expires_in,
+        "imagen": f"data:image/png;base64,{resultado.imagen_base64}",
+    }
 
 
 @bp.post("/verify")
 @auth_required("profesor", "director")
 def verify_qr():
-    data = request.get_json() or {}
-    student_id = data.get("student_id")
-    code = data.get("code")
-
-    if not student_id or not code:
-        return jsonify({"error": "Faltan parámetros requeridos", "valid": False}), 400
-
-    secret = "JBSWY3DPEHPK3PXP"
-    is_valid = TOTPService.verify_code(secret, str(code))
-
-    if not is_valid:
-        return jsonify({"message": "Código QR inválido o expirado", "valid": False}), 400
-
-    return jsonify({"message": "Código QR válido", "valid": True, "student_id": student_id}), 200
+    """Valida un código QR sin registrar la asistencia."""
+    data = parse_json(QRVerifyRequest)
+    _service().verificar(current_principal(), data.id_estudiante, data.codigo)
+    return {"valido": True, "id_estudiante": data.id_estudiante}
 
 
-@bp.get("/student/<int:student_id>")
-@auth_required("director", "profesor")
-def get_student_qr_info(student_id: int):
-    if student_id == 999999:
-        return jsonify({"error": "Estudiante no encontrado"}), 404
-
-    return jsonify({"student_id": student_id, "active": True}), 200
+@bp.post("/student/<int:id_estudiante>/renovar")
+@auth_required("director")
+def renew_student_qr(id_estudiante: int):
+    """Emite una credencial nueva, revocando la anterior."""
+    estudiante = db.session.get(Estudiante, id_estudiante)
+    if estudiante is None:
+        return {
+            "error": {
+                "codigo": "no_encontrado",
+                "mensaje": "No se encontró el estudiante.",
+                "accion": "Verifique el estudiante o regrese al inicio.",
+            }
+        }, 404
+    return qr_payload(_service().renovar_credencial(current_principal(), id_estudiante))
