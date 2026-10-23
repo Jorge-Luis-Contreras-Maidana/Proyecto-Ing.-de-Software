@@ -43,11 +43,20 @@ class QRService:
 
     # ---------- emisión ----------
     def emitir_si_falta(self, id_estudiante: int) -> CredencialQR:
-        """Devuelve la credencial activa del estudiante; si no tiene, le emite una."""
+        """Devuelve la credencial activa del estudiante; si no tiene, le emite una.
+
+        También la reemite cuando el secreto guardado no se puede descifrar: eso
+        pasa cuando rota la clave TOTP_ENCRYPTION_KEY o cuando el dato se daña.
+        Una credencial así no sirve para nada, y dejarla tal cual haría fallar
+        cada vez que el estudiante abre su QR, así que se revoca y se emite otra.
+        """
         actual = self.repo.active_credential(id_estudiante)
-        if actual is not None:
+        if actual is not None and self._secreto_descifrable(actual):
             return actual
         with unit_of_work():
+            if actual is not None:
+                actual.estado = "revocada"
+                actual.revocada_en = clock.now()
             return self.repo.add_credential(
                 CredencialQR(
                     id_estudiante=id_estudiante,
@@ -56,6 +65,15 @@ class QRService:
                     estado="activa",
                 )
             )
+
+    @staticmethod
+    def _secreto_descifrable(credencial: CredencialQR) -> bool:
+        """False si el secreto cifrado no se puede revertir con la clave actual."""
+        try:
+            descifrar(credencial.secreto_totp_cifrado)
+        except InvalidData:
+            return False
+        return True
 
     def renovar_credencial(self, principal, id_estudiante: int) -> QRCodeResult:
         """El director invalida la credencial anterior y emite una nueva."""
